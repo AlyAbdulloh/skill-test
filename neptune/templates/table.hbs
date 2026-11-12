@@ -1,0 +1,130 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
+import { Plus, Loader2, Search, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import { {{pascal name}}Form } from './components/{{pascal name}}Form'
+import type { {{pascal name}} } from '../domains/{{dashed name}}.entity'
+import type { {{pascal name}}List } from '../domains/{{dashed name}}.list'
+
+export function {{pascal name}}Table() {
+  const [pageData, setPageData] = useState<{{pascal name}}List | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState<{{pascal name}} | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{{pascal name}} | null>(null)
+
+  const fetchData = useCallback(async (q: string, p: number) => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (q) params.set('keywords', q)
+      params.set('page', String(p))
+      const res = await fetch(`/api/{{moduleFolder}}/{{dashed name}}?${params}`)
+      if (!res.ok) throw new Error()
+      setPageData(await res.json())
+    } catch {
+      toast.error('Failed to load data')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchData(debouncedSearch, page) }, [fetchData, debouncedSearch, page])
+
+  useEffect(() => {
+    const timer = setTimeout(() => { setDebouncedSearch(search); setPage(1) }, 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  async function handleDelete(id: number) {
+    const res = await fetch(`/api/{{moduleFolder}}/{{dashed name}}/${id}`, { method: 'DELETE' })
+    if (res.ok) { toast.success('Deleted'); fetchData(debouncedSearch, page) }
+    else toast.error('Failed to delete')
+    setDeleteTarget(null)
+  }
+
+  const items = pageData?.items ?? []
+  const totalPages = pageData?.pagination?.total_pages ?? 1
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">{{pascal name}}</h2>
+          <p className="text-sm text-slate-500 mt-1">{pageData?.pagination?.total ?? 0} items</p>
+        </div>
+        <Button onClick={() => { setEditing(null); setFormOpen(true) }} size="lg" className="rounded-xl bg-gradient-to-r from-cyan-500 to-pink-500 text-white shadow-lg gap-2">
+          <Plus size={16} /> New
+        </Button>
+      </div>
+
+      <div className="relative mb-6">
+        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input type="text" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)}
+          className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/20" />
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin text-slate-400" /></div>
+      ) : items.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center text-slate-500">No data</div>
+      ) : (
+        <>
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50">
+{{#each fieldsArray}}
+                  <th className="px-4 py-3 text-left font-medium text-slate-600">{{this.name}}</th>
+{{/each}}
+                  <th className="px-4 py-3 text-right font-medium text-slate-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map(item => (
+                  <tr key={item.id} className="border-b border-slate-50 hover:bg-slate-50/50">
+{{#each fieldsArray}}
+                    <td className="px-4 py-3 text-slate-800">{String(item.{{this.name}} ?? '-')}</td>
+{{/each}}
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button onClick={() => { setEditing(item); setFormOpen(true) }} variant="ghost" size="sm" className="text-cyan-600 hover:bg-cyan-50 h-8 w-8 p-0"><Pencil size={14} /></Button>
+                        <Button onClick={() => setDeleteTarget(item)} variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 h-8 w-8 p-0"><Trash2 size={14} /></Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-6 mt-4">
+              <p className="text-sm text-slate-500">Page {page} of {totalPages}</p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40">
+                  <ChevronLeft size={14} /> Previous
+                </button>
+                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-40">
+                  Next <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {formOpen && <{{pascal name}}Form item={editing} onClose={() => setFormOpen(false)} onSaved={() => { setFormOpen(false); fetchData(debouncedSearch, page) }} />}
+
+      <ConfirmDialog open={deleteTarget !== null} onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { if (deleteTarget) handleDelete(deleteTarget.id); return Promise.resolve() }}
+        title="Delete" message="Are you sure?" confirmLabel="Delete" variant="danger" />
+    </>
+  )
+}

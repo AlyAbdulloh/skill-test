@@ -1,0 +1,12 @@
+node_modules
+.git
+.next
+.env*
+*.log
+.gitlab-ci.yml
+.dockerignore
+.npmrc
+README.md
+*.md
+drizzle
+uploads

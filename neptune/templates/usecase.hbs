@@ -1,0 +1,28 @@
+import { auth } from '@/src/core/auth/auth'
+import { {{pascal name}}Repository } from '../repositories/{{dashed name}}.repository'
+
+export const {{pascal name}}Usecase = {
+  async list(page = 1, perPage = 20, keywords = '') {
+    const session = await auth()
+    if (!session) throw new Error('Unauthorized')
+    return {{pascal name}}Repository.getAll(page, perPage, keywords)
+  },
+
+  async create(data: { {{#each fieldsArray}}{{#if this.required}}{{this.name}}: {{this.tsType}}{{/if}}{{/each}} }) {
+    const session = await auth()
+    if (!session) throw new Error('Unauthorized')
+    return {{pascal name}}Repository.create(data)
+  },
+
+  async update(id: number, data: Partial<{ {{#each fieldsArray}}{{this.name}}: {{this.tsType}}{{/each}} }>) {
+    const session = await auth()
+    if (!session) throw new Error('Unauthorized')
+    return {{pascal name}}Repository.update(id, data)
+  },
+
+  async delete(id: number) {
+    const session = await auth()
+    if (!session) throw new Error('Unauthorized')
+    return {{pascal name}}Repository.softDelete(id)
+  },
+}

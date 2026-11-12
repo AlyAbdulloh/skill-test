@@ -1,0 +1,31 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import type { {{pascal name}}List } from '../domains/{{dashed name}}.list'
+
+export function use{{pascal name}}Table() {
+  const [data, setData] = useState<{{pascal name}}List | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [keywords, setKeywords] = useState('')
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (keywords) params.set('keywords', keywords)
+      params.set('page', String(page))
+      const res = await fetch(`/api/{{moduleFolder}}/{{dashed name}}?${params}`)
+      if (!res.ok) throw new Error()
+      setData(await res.json())
+    } catch {
+      setData(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [page, keywords])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  return { data, loading, page, setPage, keywords, setKeywords, refetch: fetchData }
+}

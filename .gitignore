@@ -1,0 +1,10 @@
+node_modules/
+.next/
+.env
+.env.docker
+*.local
+drizzle/
+public/uploads/
+storage/
+error.log
+tsconfig.tsbuildinfo

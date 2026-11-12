@@ -1,0 +1,28 @@
+import { NextRequest } from 'next/server'
+import { {{pascal name}}Usecase } from '@/src/modules/v1/{{moduleFolder}}/{{dashed name}}/usecases/{{dashed name}}.usecase'
+import { apiSuccess, apiError, apiUnauthorized } from '@/src/shared/utils/api-response'
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = req.nextUrl
+    const page = Number(searchParams.get('page')) || 1
+    const perPage = Number(searchParams.get('per_page')) || 20
+    const keywords = searchParams.get('keywords') || ''
+    const result = await {{pascal name}}Usecase.list(page, perPage, keywords)
+    return apiSuccess(result)
+  } catch (err: any) {
+    if (err.message === 'Unauthorized') return apiUnauthorized()
+    return apiError(err.message || 'Internal server error', 'E-000', 500)
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const result = await {{pascal name}}Usecase.create(body)
+    return apiSuccess(result, 'Created')
+  } catch (err: any) {
+    if (err.message === 'Unauthorized') return apiUnauthorized()
+    return apiError(err.message || 'Internal server error', 'E-000', 500)
+  }
+}

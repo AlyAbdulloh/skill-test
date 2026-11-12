@@ -1,0 +1,23 @@
+services:
+  skeleton:
+    image: your-dockerhub-username/skeleton:latest
+    container_name: skeleton
+    env_file:
+      - .env.docker
+    ports:
+      - "3011:3011"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    volumes:
+      - your-local-path/skeleton:/app
+    networks:
+      - portal-network
+    restart: unless-stopped
+
+networks:
+  portal-network:
+    external: true

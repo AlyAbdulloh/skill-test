@@ -1,0 +1,66 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
+import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import type { {{pascal name}} } from '../../domains/{{dashed name}}.entity'
+
+interface {{pascal name}}FormProps {
+  item?: {{pascal name}} | null
+  onClose: () => void
+  onSaved: () => void
+}
+
+export function {{pascal name}}Form({ item, onClose, onSaved }: {{pascal name}}FormProps) {
+{{#each fieldsArray}}
+  const [{{camel this.name}}, set{{pascal this.name}}] = useState(item?.{{this.name}} ?? '')
+{{/each}}
+  const [saving, setSaving] = useState(false)
+  const firstRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { firstRef.current?.focus() }, [])
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', h)
+    return () => document.removeEventListener('keydown', h)
+  }, [onClose])
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    const url = item ? `/api/{{moduleFolder}}/{{dashed name}}/${item.id}` : `/api/{{moduleFolder}}/{{dashed name}}`
+    const method = item ? 'PUT' : 'POST'
+    const body: Record<string, any> = {
+{{#each fieldsArray}}
+      {{this.name}}: {{camel this.name}} || undefined,
+{{/each}}
+    }
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    if (res.ok) { toast.success(item ? 'Updated' : 'Created'); onSaved() }
+    else toast.error('Failed to save')
+    setSaving(false)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+      <form onSubmit={handleSubmit} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg border border-slate-200">
+        <h3 className="mb-5 text-lg font-bold text-slate-900">{item ? 'Edit' : 'New'} {{pascal name}}</h3>
+{{#each fieldsArray}}
+        <div className="mb-4">
+          <Label htmlFor="{{this.name}}" className="mb-1.5 block">{{this.name}}</Label>
+          <Input id="{{this.name}}" ref={{#if @first}}firstRef{{/if}} value={ {{camel this.name}} as string} onChange={e => set{{pascal this.name}}(e.target.value)} {{#if this.required}}required{{/if}} className="rounded-xl" />
+        </div>
+{{/each}}
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="outline" size="lg" onClick={onClose} className="rounded-xl">Cancel</Button>
+          <Button type="submit" size="lg" disabled={saving} className="rounded-xl bg-gradient-to-r from-cyan-500 to-pink-500 text-white shadow-lg gap-2">
+            {saving ? <><Loader2 size={15} className="animate-spin" /> Saving...</> : item ? 'Update' : 'Create'}
+          </Button>
+        </div>
+      </form>
+    </div>
+  )
+}

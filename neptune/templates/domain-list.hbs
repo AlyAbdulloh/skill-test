@@ -1,0 +1,9 @@
+import type { {{pascal name}} } from './{{dashed name}}.entity'
+import type { IPagination } from '@/src/shared/types/pagination'
+import type { IAccess } from '@/src/shared/types/access'
+
+export interface {{pascal name}}List {
+  items: {{pascal name}}[]
+  pagination: IPagination
+  access: IAccess
+}

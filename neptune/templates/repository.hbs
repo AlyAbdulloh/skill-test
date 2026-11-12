@@ -1,0 +1,55 @@
+import { db, schema } from '@/src/core/db'
+import { and, eq, asc, isNull, count, like, or } from 'drizzle-orm'
+
+export const {{pascal name}}Repository = {
+  async getAll(page = 1, perPage = 20, keywords = '') {
+    const baseWhere = isNull(schema.mst{{plural (pascal name)}}.deletedAt)
+    const where = keywords
+      ? and(baseWhere, or(like(schema.mst{{plural (pascal name)}}.name, `%${keywords}%`)))
+      : baseWhere
+
+    const [data, countResult] = await Promise.all([
+      db.query.mst{{plural (pascal name)}}.findMany({
+        where,
+        orderBy: [asc(schema.mst{{plural (pascal name)}}.name)],
+        limit: perPage,
+        offset: (page - 1) * perPage,
+      }),
+      db.select({ value: count() }).from(schema.mst{{plural (pascal name)}}).where(where),
+    ])
+
+    const total = countResult[0].value
+
+    return {
+      items: data.map(row => ({
+        id: row.id,
+{{#each fieldsArray}}
+        {{this.name}}: row.{{camel this.name}},
+{{/each}}
+        created_at: row.createdAt?.toISOString() ?? '',
+        updated_at: row.updatedAt?.toISOString() ?? '',
+      })),
+      pagination: { page, per_page: perPage, total, total_pages: Math.ceil(total / perPage) },
+      access: { can_view: true, can_create: true, can_update: true, can_delete: true },
+    }
+  },
+
+  async getById(id: number) {
+    return db.query.mst{{plural (pascal name)}}.findFirst({
+      where: and(eq(schema.mst{{plural (pascal name)}}.id, id), isNull(schema.mst{{plural (pascal name)}}.deletedAt)),
+    })
+  },
+
+  async create(data: { {{#each fieldsArray}}{{#if this.required}}{{this.name}}: {{this.tsType}}{{/if}}{{/each}} }) {
+    const [result] = await db.insert(schema.mst{{plural (pascal name)}}).values(data).returning()
+    return result
+  },
+
+  async update(id: number, data: Partial<{ {{#each fieldsArray}}{{this.name}}: {{this.tsType}}{{/each}} }>) {
+    await db.update(schema.mst{{plural (pascal name)}}).set(data).where(eq(schema.mst{{plural (pascal name)}}.id, id))
+  },
+
+  async softDelete(id: number) {
+    await db.update(schema.mst{{plural (pascal name)}}).set({ deletedAt: new Date() }).where(eq(schema.mst{{plural (pascal name)}}.id, id))
+  },
+}

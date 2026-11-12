@@ -1,0 +1,26 @@
+import { NextRequest } from 'next/server'
+import { {{pascal name}}Usecase } from '@/src/modules/v1/{{moduleFolder}}/{{dashed name}}/usecases/{{dashed name}}.usecase'
+import { apiSuccess, apiError, apiUnauthorized } from '@/src/shared/utils/api-response'
+
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+    const body = await req.json()
+    await {{pascal name}}Usecase.update(Number(id), body)
+    return apiSuccess(null, 'Updated')
+  } catch (err: any) {
+    if (err.message === 'Unauthorized') return apiUnauthorized()
+    return apiError(err.message || 'Internal server error', 'E-000', 500)
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+    await {{pascal name}}Usecase.delete(Number(id))
+    return apiSuccess(null, 'Deleted')
+  } catch (err: any) {
+    if (err.message === 'Unauthorized') return apiUnauthorized()
+    return apiError(err.message || 'Internal server error', 'E-000', 500)
+  }
+}
