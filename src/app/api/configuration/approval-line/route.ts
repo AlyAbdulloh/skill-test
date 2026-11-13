@@ -5,8 +5,8 @@ export async function GET(req: NextRequest) {
   const page = parseInt(req.nextUrl.searchParams.get('page') || '1')
   const perPage = parseInt(req.nextUrl.searchParams.get('per_page') || '20')
   const keywords = req.nextUrl.searchParams.get('keywords') || ''
-  const featureId = req.nextUrl.searchParams.get('feature_id')
-  return ApprovalLineUsecase.list(page, perPage, keywords, featureId ? parseInt(featureId) : undefined)
+  const categoryId = req.nextUrl.searchParams.get('category_id')
+  return ApprovalLineUsecase.list(page, perPage, keywords, categoryId ? parseInt(categoryId) : undefined)
 }
 
 export async function POST(req: NextRequest) {

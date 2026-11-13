@@ -141,6 +141,7 @@ export const Loggers = {
   role: new ModuleLogger('ROLE', customLogger),
   permission: new ModuleLogger('PERMISSION', customLogger),
   approval_line: new ModuleLogger('APPROVAL_LINE', customLogger),
+  document_request: new ModuleLogger('DOCUMENT_REQUEST', customLogger),
   general: new ModuleLogger('GENERAL', customLogger),
 }
 

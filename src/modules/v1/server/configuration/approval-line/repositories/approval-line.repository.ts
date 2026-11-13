@@ -1,24 +1,24 @@
 import { db, schema } from '@/src/core/db'
 import { eq, isNull, count, asc, desc, like, or, and, sql } from 'drizzle-orm'
 import type { ApprovalLine, ApprovalLinePayload, ApprovalLineStepPayload } from '../domains/approval-line.entity'
-import type { Feature } from '../domains/feature.entity'
+import type { Category } from '../domains/category.entity'
 import type { ApprovalLineList } from '../domains/approval-line.list'
 
-const { approvalWorkflows, approvalSteps, mstFeatures, mstUsers } = schema
+const { approvalWorkflows, approvalSteps, mstCategories, mstUsers } = schema
 
 export const ApprovalLineRepository = {
-  async getAll(page = 1, perPage = 20, keywords = '', featureId?: number): Promise<ApprovalLineList> {
-    const baseWhere = isNull(mstFeatures.deletedAt)
+  async getAll(page = 1, perPage = 20, keywords = '', categoryId?: number): Promise<ApprovalLineList> {
+    const baseWhere = isNull(mstCategories.deletedAt)
     const conditions = [baseWhere]
 
     if (keywords) {
       conditions.push(or(
         like(approvalWorkflows.name, `%${keywords}%`),
-        like(mstFeatures.name, `%${keywords}%`),
+        like(mstCategories.name, `%${keywords}%`),
       )!)
     }
-    if (featureId) {
-      conditions.push(eq(approvalWorkflows.featureId, featureId))
+    if (categoryId) {
+      conditions.push(eq(approvalWorkflows.categoryId, categoryId))
     }
 
     const where = and(...conditions)
@@ -26,10 +26,9 @@ export const ApprovalLineRepository = {
     const [data, countResult] = await Promise.all([
       db.select({
         id: approvalWorkflows.id,
-        featureId: approvalWorkflows.featureId,
-        featureName: mstFeatures.name,
-        featureCode: mstFeatures.code,
-        featureRoutePath: mstFeatures.routePath,
+        categoryId: approvalWorkflows.categoryId,
+        categoryName: mstCategories.name,
+        categoryCode: mstCategories.code,
         divisionId: approvalWorkflows.divisionId,
         departmentId: approvalWorkflows.departmentId,
         name: approvalWorkflows.name,
@@ -39,14 +38,14 @@ export const ApprovalLineRepository = {
         stepsCount: sql<number>`(SELECT COUNT(*) FROM approval_steps WHERE approval_steps.workflow_id = ${approvalWorkflows.id})`.mapWith(Number).as('steps_count'),
       })
         .from(approvalWorkflows)
-        .innerJoin(mstFeatures, eq(approvalWorkflows.featureId, mstFeatures.id))
+        .innerJoin(mstCategories, eq(approvalWorkflows.categoryId, mstCategories.id))
         .where(where)
         .orderBy(asc(approvalWorkflows.name))
         .limit(perPage)
         .offset((page - 1) * perPage),
       db.select({ total: count() })
         .from(approvalWorkflows)
-        .innerJoin(mstFeatures, eq(approvalWorkflows.featureId, mstFeatures.id))
+        .innerJoin(mstCategories, eq(approvalWorkflows.categoryId, mstCategories.id))
         .where(where),
     ])
 
@@ -55,10 +54,9 @@ export const ApprovalLineRepository = {
     return {
       items: data.map((r: any) => ({
         id: Number(r.id),
-        featureId: Number(r.featureId),
-        featureName: r.featureName,
-        featureCode: r.featureCode,
-        featureRoutePath: r.featureRoutePath,
+        categoryId: Number(r.categoryId),
+        categoryName: r.categoryName,
+        categoryCode: r.categoryCode,
         divisionId: r.divisionId,
         departmentId: r.departmentId,
         name: r.name,
@@ -79,7 +77,7 @@ export const ApprovalLineRepository = {
   async getById(id: number) {
     const workflow = await db.query.approvalWorkflows.findFirst({
       where: eq(approvalWorkflows.id, id),
-      with: { feature: true },
+      with: { category: true },
     })
     if (!workflow) return null
 
@@ -116,10 +114,9 @@ export const ApprovalLineRepository = {
 
     return {
       id: Number(workflow.id),
-      featureId: Number(workflow.featureId),
-      featureName: workflow.feature?.name,
-      featureCode: workflow.feature?.code,
-      featureRoutePath: workflow.feature?.routePath,
+      categoryId: Number(workflow.categoryId),
+      categoryName: workflow.category?.name,
+      categoryCode: workflow.category?.code,
       divisionId: workflow.divisionId,
       departmentId: workflow.departmentId,
       name: workflow.name,
@@ -133,7 +130,7 @@ export const ApprovalLineRepository = {
 
   async create(data: ApprovalLinePayload) {
     await db.insert(approvalWorkflows).values({
-      featureId: data.featureId,
+      categoryId: data.categoryId,
       name: data.name,
       divisionId: data.divisionId,
       departmentId: data.departmentId,
@@ -143,7 +140,7 @@ export const ApprovalLineRepository = {
     const record = await db.query.approvalWorkflows.findFirst({
       where: and(
         eq(approvalWorkflows.name, data.name),
-        eq(approvalWorkflows.featureId, data.featureId),
+        eq(approvalWorkflows.categoryId, data.categoryId),
       ),
       orderBy: [desc(approvalWorkflows.id)],
     })
@@ -153,7 +150,7 @@ export const ApprovalLineRepository = {
   async update(id: number, data: Partial<ApprovalLinePayload>) {
     await db.update(approvalWorkflows).set({
       ...(data.name !== undefined && { name: data.name }),
-      ...(data.featureId !== undefined && { featureId: data.featureId }),
+      ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
       ...(data.divisionId !== undefined && { divisionId: data.divisionId }),
       ...(data.departmentId !== undefined && { departmentId: data.departmentId }),
       ...(data.isActive !== undefined && { isActive: data.isActive }),
@@ -249,60 +246,25 @@ export const ApprovalLineRepository = {
     })
   },
 
-  async getFeatures(): Promise<Feature[]> {
-    const data = await db.query.mstFeatures.findMany({
-      where: and(
-        eq(mstFeatures.isActive, true),
-        isNull(mstFeatures.deletedAt),
-        isNull(mstFeatures.parentId),
-      ),
-      orderBy: [asc(mstFeatures.sortOrder)],
-    })
-
-    const children = await db.query.mstFeatures.findMany({
-      where: and(
-        eq(mstFeatures.isActive, true),
-        isNull(mstFeatures.deletedAt),
-        sql`${mstFeatures.parentId} IS NOT NULL`,
-      ),
-      orderBy: [asc(mstFeatures.sortOrder)],
-    })
-
-    return [...data, ...children].map((f: any) => ({
-      id: Number(f.id),
-      parentId: f.parentId ? Number(f.parentId) : null,
-      code: f.code,
-      name: f.name,
-      routePath: f.routePath,
-      icon: f.icon,
-      sortOrder: Number(f.sortOrder || 0),
-      isActive: Boolean(f.isActive ?? true),
-    }))
-  },
-
-  async getSubmoduleFeatures(keywords = ''): Promise<Feature[]> {
+  async getCategories(keywords = ''): Promise<Category[]> {
     const where = and(
-      sql`${mstFeatures.parentId} IS NOT NULL`,
-      eq(mstFeatures.isActive, true),
-      isNull(mstFeatures.deletedAt),
-      keywords ? like(mstFeatures.name, `%${keywords}%`) : undefined,
+      eq(mstCategories.isActive, true),
+      isNull(mstCategories.deletedAt),
+      keywords ? like(mstCategories.name, `%${keywords}%`) : undefined,
     )
 
-    const data = await db.query.mstFeatures.findMany({
+    const data = await db.query.mstCategories.findMany({
       where,
-      orderBy: [asc(mstFeatures.sortOrder)],
+      orderBy: [asc(mstCategories.name)],
       limit: 50,
     })
 
-    return data.map((f: any) => ({
-      id: Number(f.id),
-      parentId: f.parentId ? Number(f.parentId) : null,
-      code: f.code,
-      name: f.name,
-      routePath: f.routePath,
-      icon: f.icon,
-      sortOrder: Number(f.sortOrder || 0),
-      isActive: Boolean(f.isActive ?? true),
+    return data.map((c: any) => ({
+      id: Number(c.id),
+      code: c.code,
+      name: c.name,
+      description: c.description,
+      isActive: Boolean(c.isActive ?? true),
     }))
   },
 

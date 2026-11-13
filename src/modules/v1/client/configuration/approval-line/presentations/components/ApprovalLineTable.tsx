@@ -64,7 +64,7 @@ export function ApprovalLineTable({
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
                   <th className="px-5 py-3 text-left font-medium text-slate-600">Name</th>
-                  <th className="px-5 py-3 text-left font-medium text-slate-600">Feature</th>
+                  <th className="px-5 py-3 text-left font-medium text-slate-600">Category</th>
                   <th className="px-5 py-3 text-left font-medium text-slate-600">Steps</th>
                   <th className="px-5 py-3 text-left font-medium text-slate-600">Status</th>
                   {canManage && <th className="px-5 py-3 text-right font-medium text-slate-600">Actions</th>}
@@ -75,9 +75,9 @@ export function ApprovalLineTable({
                   <tr key={item.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                     <td className="px-5 py-3 font-medium text-slate-800">{item.name}</td>
                     <td className="px-5 py-3 text-slate-500">
-                      {item.featureName && (
+                      {item.categoryName && (
                         <span className="inline-flex items-center rounded-lg bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700 border border-purple-200">
-                          {item.featureName}
+                          {item.categoryName}
                         </span>
                       )}
                     </td>

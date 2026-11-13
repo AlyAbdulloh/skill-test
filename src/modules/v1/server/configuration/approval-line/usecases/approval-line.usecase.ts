@@ -7,7 +7,7 @@ import type { ApprovalLinePayload, ApprovalLineStepPayload } from '../domains/ap
 const log = Loggers.approval_line
 
 export const ApprovalLineUsecase = {
-  async list(page: number, perPage: number, keywords: string, featureId?: number) {
+  async list(page: number, perPage: number, keywords: string, categoryId?: number) {
     const session = await auth()
     if (!session) return apiUnauthorized()
     if (!session.user.permissions.includes('configuration.approval-line.view')) {
@@ -15,7 +15,7 @@ export const ApprovalLineUsecase = {
       return apiForbidden()
     }
 
-    const data = await ApprovalLineRepository.getAll(page, perPage, keywords, featureId)
+    const data = await ApprovalLineRepository.getAll(page, perPage, keywords, categoryId)
     return apiSuccess(data)
   },
 
@@ -96,11 +96,11 @@ export const ApprovalLineUsecase = {
     return apiSuccess(null, 'Steps saved')
   },
 
-  async getFeatures(keywords?: string) {
+  async getCategories(keywords?: string) {
     const session = await auth()
     if (!session) return apiUnauthorized()
 
-    const data = await ApprovalLineRepository.getSubmoduleFeatures(keywords)
+    const data = await ApprovalLineRepository.getCategories(keywords)
     return apiSuccess(data)
   },
 

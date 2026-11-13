@@ -2,8 +2,8 @@ import { ApprovalLineRepository } from '../repositories/approval-line.repository
 import type { ApprovalLinePayload, ApprovalLineStepPayload } from '../domains/approval-line.entity'
 
 export const ApprovalLineUsecase = {
-  async list(page = 1, perPage = 20, keywords = '', featureId?: number) {
-    return ApprovalLineRepository.getAll(page, perPage, keywords, featureId)
+  async list(page = 1, perPage = 20, keywords = '', categoryId?: number) {
+    return ApprovalLineRepository.getAll(page, perPage, keywords, categoryId)
   },
 
   async detail(id: number) {
@@ -30,8 +30,8 @@ export const ApprovalLineUsecase = {
     return ApprovalLineRepository.syncSteps(workflowId, steps)
   },
 
-  async getFeatures(keywords?: string) {
-    return ApprovalLineRepository.getFeatures(keywords)
+  async getCategories(keywords?: string) {
+    return ApprovalLineRepository.getCategories(keywords)
   },
 
   async getUsers(keywords?: string) {

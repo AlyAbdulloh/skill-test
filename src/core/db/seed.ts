@@ -16,6 +16,11 @@ async function main() {
     { name: 'permission.view', guardName: 'web' },
     { name: 'configuration.approval-line.view', guardName: 'web' },
     { name: 'configuration.approval-line.manage', guardName: 'web' },
+    { name: 'document-request.view', guardName: 'web' },
+    { name: 'document-request.manage', guardName: 'web' },
+    { name: 'document-request.resubmit', guardName: 'web' },
+    { name: 'approval-inbox.view', guardName: 'web' },
+    { name: 'approval-inbox.manage', guardName: 'web' },
   ])
   const permissions = await db.query.mstPermissions.findMany()
   console.log(`  ${permissions.length} permissions created`)
@@ -27,8 +32,9 @@ async function main() {
     { name: 'super-admin', guardName: 'web', isSystem: true },
     { name: 'admin', guardName: 'web', isSystem: true },
     { name: 'viewer', guardName: 'web', isSystem: true },
+    { name: 'approver', guardName: 'web', isSystem: true },
   ])
-  console.log('  3 roles created')
+  console.log('  4 roles created')
 
   const allRoles = await db.query.mstRoles.findMany()
   const roleMap = Object.fromEntries(allRoles.map(r => [r.name, r.id]))
@@ -47,12 +53,25 @@ async function main() {
     { roleId: roleMap['admin'], permissionId: permMap['permission.view'] },
     { roleId: roleMap['admin'], permissionId: permMap['configuration.approval-line.view'] },
     { roleId: roleMap['admin'], permissionId: permMap['configuration.approval-line.manage'] },
+    { roleId: roleMap['admin'], permissionId: permMap['document-request.view'] },
+    { roleId: roleMap['admin'], permissionId: permMap['document-request.manage'] },
+    { roleId: roleMap['admin'], permissionId: permMap['document-request.resubmit'] },
+    { roleId: roleMap['admin'], permissionId: permMap['approval-inbox.view'] },
+    { roleId: roleMap['admin'], permissionId: permMap['approval-inbox.manage'] },
     // viewer: view only
     { roleId: roleMap['viewer'], permissionId: permMap['master-data.view'] },
     { roleId: roleMap['viewer'], permissionId: permMap['user.view'] },
     { roleId: roleMap['viewer'], permissionId: permMap['role.view'] },
     { roleId: roleMap['viewer'], permissionId: permMap['permission.view'] },
     { roleId: roleMap['viewer'], permissionId: permMap['configuration.approval-line.view'] },
+    { roleId: roleMap['viewer'], permissionId: permMap['document-request.view'] },
+    { roleId: roleMap['viewer'], permissionId: permMap['approval-inbox.view'] },
+    // approver: can submit document requests & approve inbox
+    { roleId: roleMap['approver'], permissionId: permMap['document-request.view'] },
+    { roleId: roleMap['approver'], permissionId: permMap['document-request.manage'] },
+    { roleId: roleMap['approver'], permissionId: permMap['document-request.resubmit'] },
+    { roleId: roleMap['approver'], permissionId: permMap['approval-inbox.view'] },
+    { roleId: roleMap['approver'], permissionId: permMap['approval-inbox.manage'] },
   ]
   await db.insert(schema.trsRolePermissions).values(rolePermValues)
   console.log(`  ${rolePermValues.length} role permissions assigned`)
@@ -60,18 +79,30 @@ async function main() {
   // ─── USERS ──────────────────────────────────────────────
   const adminHash = await hashPassword('admin123')
   const viewerHash = await hashPassword('viewer123')
+  const approverHash = await hashPassword('approver123')
+
+  const approverUsers = Array.from({ length: 5 }, (_, i) => ({
+    username: `approver${i + 1}`,
+    email: `approver${i + 1}@skeleton.local`,
+    name: `Approver ${i + 1}`,
+    passwordHash: approverHash,
+    isActive: true,
+  }))
 
   await db.insert(schema.mstUsers).values([
     { username: 'admin', email: 'admin@skeleton.local', name: 'Super Admin', passwordHash: adminHash, isActive: true },
     { username: 'viewer', email: 'viewer@skeleton.local', name: 'Viewer User', passwordHash: viewerHash, isActive: true },
+    ...approverUsers,
   ])
   const users = await db.query.mstUsers.findMany()
-  console.log('  2 users created')
+  const userMap = Object.fromEntries(users.map(u => [u.username, u.id]))
+  console.log(`  ${users.length} users created`)
 
   // ─── USER ROLES ─────────────────────────────────────────
   await db.insert(schema.trsUserRoles).values([
-    { userId: users[0].id, roleId: roleMap['super-admin'] },
-    { userId: users[1].id, roleId: roleMap['viewer'] },
+    { userId: userMap['admin'], roleId: roleMap['super-admin'] },
+    { userId: userMap['viewer'], roleId: roleMap['viewer'] },
+    ...approverUsers.map(u => ({ userId: userMap[u.username], roleId: roleMap['approver'] })),
   ])
   console.log('  User roles assigned')
 
@@ -81,7 +112,8 @@ async function main() {
     { code: 'IT', name: 'Teknologi Informasi', description: 'Kategori untuk dokumen terkait IT', isActive: true },
     { code: 'FIN', name: 'Keuangan', description: 'Kategori untuk dokumen terkait keuangan', isActive: true },
   ])
-  console.log('  3 sample categories created')
+  const categories = await db.query.mstCategories.findMany()
+  console.log(`  ${categories.length} sample categories created`)
 
   // ─── FEATURES ───────────────────────────────────────────
   await db.insert(schema.mstFeatures).values([
@@ -103,20 +135,59 @@ async function main() {
   })
   console.log(`  ${features.length + 1} features created`)
 
-  // ─── SAMPLE APPROVAL WORKFLOW ───────────────────────────
-  await db.insert(schema.approvalWorkflows).values([
-    { featureId: features[0].id, name: 'Category Approval', isActive: true },
-  ])
-  const workflow = await db.query.approvalWorkflows.findFirst()
+  // ─── APPROVAL WORKFLOWS per CATEGORY ────────────────────
+  // Setiap kategori punya workflow; step memakai approverType 'user'.
+  // SDM: 2 step | IT: 3 step | FIN: 2 step
+  const catMap = Object.fromEntries(categories.map(c => [c.code, c.id]))
 
-  await db.insert(schema.approvalSteps).values([
-    { workflowId: workflow!.id, step: 1, groupNo: 1, approverType: 'user', userId: users[0].id, groupType: 'SEQUENTIAL', minApproval: 1, isRequired: true, allowedActions: 'approve,reject' },
-  ])
-  console.log('  1 sample approval workflow created')
+  const workflowValues = [
+    { categoryId: catMap['SDM'], name: 'SDM Approval', isActive: true },
+    { categoryId: catMap['IT'], name: 'IT Approval', isActive: true },
+    { categoryId: catMap['FIN'], name: 'FIN Approval', isActive: true },
+  ]
+  const insertedWorkflows = await db.insert(schema.approvalWorkflows)
+    .values(workflowValues)
+    .returning({
+      id: schema.approvalWorkflows.id,
+      categoryId: schema.approvalWorkflows.categoryId,
+    })
+  const workflowByCategory = new Map(insertedWorkflows.map(w => [Number(w.categoryId), Number(w.id)]))
+
+  const stepBuilder = (workflowId: number, steps: Array<{ step: number; username: string }>) =>
+    steps.map(s => ({
+      workflowId,
+      step: s.step,
+      groupNo: 1,
+      approverType: 'user',
+      userId: userMap[s.username],
+      groupType: 'SEQUENTIAL',
+      minApproval: 1,
+      isRequired: true,
+      allowedActions: 'approve,reject',
+    }))
+
+  const approvalStepValues = [
+    ...stepBuilder(workflowByCategory.get(catMap['SDM'])!, [
+      { step: 1, username: 'approver1' },
+      { step: 2, username: 'approver2' },
+    ]),
+    ...stepBuilder(workflowByCategory.get(catMap['IT'])!, [
+      { step: 1, username: 'approver1' },
+      { step: 2, username: 'approver3' },
+      { step: 3, username: 'approver5' },
+    ]),
+    ...stepBuilder(workflowByCategory.get(catMap['FIN'])!, [
+      { step: 1, username: 'approver2' },
+      { step: 2, username: 'approver4' },
+    ]),
+  ]
+  await db.insert(schema.approvalSteps).values(approvalStepValues)
+  console.log(`  ${workflowValues.length} approval workflows created (${approvalStepValues.length} steps)`)
 
   console.log('\nSeed completed!')
   console.log('  Login: admin / admin123')
   console.log('  Login: viewer / viewer123')
+  console.log('  Login: approver1..5 / approver123')
 }
 
 main().catch(console.error)

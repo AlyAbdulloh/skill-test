@@ -3,5 +3,5 @@ import { ApprovalLineUsecase } from '@/modules/v1/server/configuration/approval-
 
 export async function GET(req: NextRequest) {
   const keywords = req.nextUrl.searchParams.get('keywords') || ''
-  return ApprovalLineUsecase.getFeatures(keywords)
+  return ApprovalLineUsecase.getCategories(keywords)
 }

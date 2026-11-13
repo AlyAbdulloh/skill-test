@@ -2,12 +2,12 @@ import type { ApprovalLinePayload, ApprovalLineStepPayload } from '../domains/ap
 import type { ApprovalLineList } from '../domains/approval-line.list'
 
 export const ApprovalLineRepository = {
-  async getAll(page = 1, perPage = 20, keywords = '', featureId?: number): Promise<ApprovalLineList> {
+  async getAll(page = 1, perPage = 20, keywords = '', categoryId?: number): Promise<ApprovalLineList> {
     const params = new URLSearchParams()
     params.set('page', String(page))
     params.set('per_page', String(perPage))
     if (keywords) params.set('keywords', keywords)
-    if (featureId) params.set('feature_id', String(featureId))
+    if (categoryId) params.set('category_id', String(categoryId))
 
     const res = await fetch(`/api/configuration/approval-line?${params.toString()}`)
     if (!res.ok) throw new Error('Gagal mengambil data approval line')
@@ -71,11 +71,11 @@ export const ApprovalLineRepository = {
     return json.data ?? json
   },
 
-  async getFeatures(keywords = '') {
+  async getCategories(keywords = '') {
     const params = new URLSearchParams()
     if (keywords) params.set('keywords', keywords)
-    const res = await fetch(`/api/configuration/features?${params.toString()}`)
-    if (!res.ok) throw new Error('Gagal mengambil features')
+    const res = await fetch(`/api/configuration/categories?${params.toString()}`)
+    if (!res.ok) throw new Error('Gagal mengambil categories')
     const json = await res.json()
     return json.data ?? json
   },

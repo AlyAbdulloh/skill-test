@@ -138,4 +138,5 @@ export type NewMstCategory = typeof mstCategories.$inferInsert
 // ─── RE-EXPORTS ─────────────────────────────────────────────────
 export * from './feature'
 export * from './approval'
+export * from './document-request'
 

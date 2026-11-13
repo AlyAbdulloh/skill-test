@@ -1,9 +1,8 @@
 export interface ApprovalLine {
   id: number
-  featureId: number
-  featureName?: string
-  featureCode?: string
-  featureRoutePath?: string
+  categoryId: number
+  categoryName?: string
+  categoryCode?: string
   divisionId?: number | null
   departmentId?: number | null
   name: string
@@ -34,7 +33,7 @@ export interface ApprovalLineStep {
 
 export interface ApprovalLinePayload {
   name: string
-  featureId: number
+  categoryId: number
   divisionId?: number | null
   departmentId?: number | null
   isActive?: boolean

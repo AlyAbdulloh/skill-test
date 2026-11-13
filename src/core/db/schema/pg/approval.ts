@@ -9,13 +9,12 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { mstFeatures } from './feature'
-import { mstUsers } from './index'
+import { mstUsers, mstCategories, trsDocumentRequests } from './index'
 
-// ─── APPROVAL WORKFLOWS (template per feature) ──────────────────
+// ─── APPROVAL WORKFLOWS (template per category) ────────────────
 export const approvalWorkflows = pgTable('approval_workflows', {
   id: serial('id').primaryKey(),
-  featureId: bigint('feature_id', { mode: 'number' }).notNull().references(() => mstFeatures.id),
+  categoryId: bigint('category_id', { mode: 'number' }).notNull().references(() => mstCategories.id),
   divisionId: bigint('division_id', { mode: 'number' }),
   departmentId: bigint('department_id', { mode: 'number' }),
   name: varchar('name', { length: 100 }).notNull(),
@@ -80,9 +79,17 @@ export const approvalLogs = pgTable('approval_logs', {
   createdAt: timestamp('created_at').defaultNow(),
 })
 
+// ─── APPROVAL INBOX (pending approver per request) ──────────────
+export const approvalInbox = pgTable('approval_inbox', {
+  id: serial('id').primaryKey(),
+  documentRequestId: bigint('document_request_id', { mode: 'number' }).notNull().references(() => trsDocumentRequests.id),
+  approverId: bigint('approver_id', { mode: 'number' }).notNull().references(() => mstUsers.id),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
 // ─── RELATIONS ──────────────────────────────────────────────────
 export const approvalWorkflowsRelations = relations(approvalWorkflows, ({ one, many }) => ({
-  feature: one(mstFeatures, { fields: [approvalWorkflows.featureId], references: [mstFeatures.id] }),
+  category: one(mstCategories, { fields: [approvalWorkflows.categoryId], references: [mstCategories.id] }),
   steps: many(approvalSteps),
   instances: many(approvalInstances),
 }))
@@ -108,6 +115,11 @@ export const approvalLogsRelations = relations(approvalLogs, ({ one }) => ({
   instanceStep: one(approvalInstanceSteps, { fields: [approvalLogs.instanceStepId], references: [approvalInstanceSteps.id] }),
 }))
 
+export const approvalInboxRelations = relations(approvalInbox, ({ one }) => ({
+  documentRequest: one(trsDocumentRequests, { fields: [approvalInbox.documentRequestId], references: [trsDocumentRequests.id] }),
+  approver: one(mstUsers, { fields: [approvalInbox.approverId], references: [mstUsers.id] }),
+}))
+
 // ─── TYPE EXPORTS ───────────────────────────────────────────────
 export type ApprovalWorkflow = typeof approvalWorkflows.$inferSelect
 export type NewApprovalWorkflow = typeof approvalWorkflows.$inferInsert
@@ -123,3 +135,6 @@ export type NewApprovalInstanceStep = typeof approvalInstanceSteps.$inferInsert
 
 export type ApprovalLog = typeof approvalLogs.$inferSelect
 export type NewApprovalLog = typeof approvalLogs.$inferInsert
+
+export type ApprovalInbox = typeof approvalInbox.$inferSelect
+export type NewApprovalInbox = typeof approvalInbox.$inferInsert

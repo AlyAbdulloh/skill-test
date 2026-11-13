@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import type { ApprovalLine } from '../../domains/approval-line.entity'
-import type { Feature } from '../../domains/feature.entity'
+import type { Category } from '../../domains/category.entity'
 
 interface Props {
   open: boolean
@@ -19,10 +19,10 @@ interface Props {
 
 export function ApprovalLineForm({ open, onClose, onSaved, item, onCreate, onUpdate }: Props) {
   const [name, setName] = useState('')
-  const [featureId, setFeatureId] = useState<number | null>(null)
+  const [categoryId, setCategoryId] = useState<number | null>(null)
   const [isActive, setIsActive] = useState(true)
-  const [features, setFeatures] = useState<Feature[]>([])
-  const [loadingFeatures, setLoadingFeatures] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(false)
   const [saving, setSaving] = useState(false)
 
   const isEdit = !!item
@@ -31,11 +31,11 @@ export function ApprovalLineForm({ open, onClose, onSaved, item, onCreate, onUpd
     if (open) {
       if (item) {
         setName(item.name)
-        setFeatureId(item.featureId)
+        setCategoryId(item.categoryId)
         setIsActive(item.isActive)
       } else {
         setName('')
-        setFeatureId(null)
+        setCategoryId(null)
         setIsActive(true)
       }
     }
@@ -43,28 +43,28 @@ export function ApprovalLineForm({ open, onClose, onSaved, item, onCreate, onUpd
 
   useEffect(() => {
     if (!open) return
-    setLoadingFeatures(true)
-    fetch('/api/configuration/features')
+    setLoadingCategories(true)
+    fetch('/api/configuration/categories')
       .then(r => r.json())
-      .then(data => setFeatures(Array.isArray(data) ? data : data.data ?? []))
+      .then(data => setCategories(Array.isArray(data) ? data : data.data ?? []))
       .catch(() => {})
-      .finally(() => setLoadingFeatures(false))
+      .finally(() => setLoadingCategories(false))
   }, [open])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !featureId) return
+    if (!name.trim() || !categoryId) return
 
     setSaving(true)
-    const payload = { name: name.trim(), featureId, isActive }
+    const payload = { name: name.trim(), categoryId, isActive }
     const ok = isEdit ? await onUpdate(item!.id, payload) : await onCreate(payload)
     if (ok) onSaved()
     setSaving(false)
   }
 
-  const featureOptions = features.map(f => ({
-    value: f.id,
-    label: `${f.name} (${f.routePath})`,
+  const categoryOptions = categories.map(c => ({
+    value: c.id,
+    label: `${c.name} (${c.code})`,
   }))
 
   return (
@@ -88,17 +88,17 @@ export function ApprovalLineForm({ open, onClose, onSaved, item, onCreate, onUpd
           </div>
 
           <div>
-            <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Feature</label>
+            <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Category</label>
             <div className="mt-2">
-              {loadingFeatures ? (
-                <div className="flex items-center gap-2 text-sm text-slate-400"><Loader2 size={14} className="animate-spin" /> Loading features...</div>
+              {loadingCategories ? (
+                <div className="flex items-center gap-2 text-sm text-slate-400"><Loader2 size={14} className="animate-spin" /> Loading categories...</div>
               ) : (
                 <SearchableSelect
-                  options={featureOptions}
-                  value={featureId}
-                  onChange={v => setFeatureId(typeof v === 'number' ? v : null)}
-                  placeholder="Select feature..."
-                  searchPlaceholder="Search features..."
+                  options={categoryOptions}
+                  value={categoryId}
+                  onChange={v => setCategoryId(typeof v === 'number' ? v : null)}
+                  placeholder="Select category..."
+                  searchPlaceholder="Search categories..."
                   clearable={false}
                 />
               )}
@@ -118,7 +118,7 @@ export function ApprovalLineForm({ open, onClose, onSaved, item, onCreate, onUpd
 
           <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={onClose} className="cursor-pointer">Cancel</Button>
-            <Button type="submit" disabled={saving || !name.trim() || !featureId} className="bg-gradient-to-r from-cyan-500 to-pink-500 text-white cursor-pointer">
+            <Button type="submit" disabled={saving || !name.trim() || !categoryId} className="bg-gradient-to-r from-cyan-500 to-pink-500 text-white cursor-pointer">
               {saving ? <><Loader2 size={14} className="animate-spin mr-2" /> Saving...</> : isEdit ? 'Update' : 'Create'}
             </Button>
           </DialogFooter>

@@ -17,6 +17,7 @@ import {
   Loader2,
   GitBranch,
   Box,
+  Inbox,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,6 +63,20 @@ const menuItems: MenuItem[] = [
         href: "/dashboard/master-data/category",
       },
     ],
+  },
+  {
+    key: "document-request",
+    label: "Document Requests",
+    href: "/dashboard/document-request",
+    icon: Box,
+    permission: "document-request.view",
+  },
+  {
+    key: "approval-inbox",
+    label: "Approval Inbox",
+    href: "/dashboard/approval-inbox",
+    icon: Inbox,
+    permission: "approval-inbox.view",
   },
   {
     key: "user-management",

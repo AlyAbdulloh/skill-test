@@ -6,8 +6,16 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   return ApprovalLineUsecase.getSteps(parseInt(id))
 }
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function syncSteps(req: NextRequest, params: Promise<{ id: string }>) {
   const { id } = await params
   const body = await req.json()
   return ApprovalLineUsecase.syncSteps(parseInt(id), body.steps)
+}
+
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  return syncSteps(req, params)
+}
+
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  return syncSteps(req, params)
 }

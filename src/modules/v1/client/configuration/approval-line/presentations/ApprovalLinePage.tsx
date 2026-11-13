@@ -25,7 +25,7 @@ export function ApprovalLinePage() {
   const canManage = session?.user?.permissions?.includes('configuration.approval-line.manage')
 
   useEffect(() => {
-    setTitle('Approval Lines', 'Configure approval workflows per feature')
+    setTitle('Approval Lines', 'Configure approval workflows per category')
   }, [setTitle])
 
   function openNew() {
